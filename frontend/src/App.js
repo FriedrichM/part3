@@ -36,8 +36,7 @@ const App = () => {
       if(existing.length===0){
         const newEntry = {
           name: newName,
-          number: newNumber,
-          id:persons.length+1
+          number: newNumber
         }
         service.create(newEntry)
         .then(response => {
