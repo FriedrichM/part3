@@ -37,7 +37,7 @@ app.get('/api/persons', (req, res) => {
 
 })
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response,next) => {
   const body = request.body
 
   if (body.name === undefined||body.number === undefined) {
@@ -52,16 +52,15 @@ app.post('/api/persons', (request, response) => {
   const person = new Person({
     name: body.name,
     number: body.number,
-    id:Math.floor(Math.random()*1000000000000)
   })
 
   person.save().then(savedPerson => {
     response.json(savedPerson)
-  }).catch(error => next(error))
+  }).catch(error => {console.log("test"+error.name)
+  next(error)})
 })
 
-app.put('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
+app.put('/api/persons/:id', (request, response, next) => {
   const body = request.body
 
   if (body.name === undefined||body.number === undefined) {
@@ -73,9 +72,9 @@ app.put('/api/persons/:id', (request, response) => {
     })
   }
 
-  Person.findOneAndUpdate({id:id},
+  Person.findByIdAndUpdate(request.params.id,
     {name:body.name, number:body.number},
-    {returnOriginal: false})
+    { new: true, runValidators: true  })
     .then(savedPerson => {
       if(savedPerson){
         response.json(savedPerson)
@@ -86,9 +85,8 @@ app.put('/api/persons/:id', (request, response) => {
   }).catch(error => next(error))
 })
 
-app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const person = Person.findOne({id:id}).then(result => {
+app.get('/api/persons/:id', (request, response, next) => {
+  const person = Person.findById(request.params.id).then(result => {
     if (result) {
       response.json(result)
     } else {
@@ -97,14 +95,14 @@ app.get('/api/persons/:id', (request, response) => {
   }).catch(error => next(error))
 })
 
-app.delete('/api/persons/:id',(request, response) => {
-  const id = Number(request.params.id)
-  Person.deleteOne({ id: id }, ()=> {
+app.delete('/api/persons/:id',(request, response, next) => {
+
+  Person.findByIdAndRemove(request.params.id, ()=> {
     response.status(204).end()
   }).catch(error => next(error));
 })
 
-const unknownEndpoint = (request, response) => {
+const unknownEndpoint = (request, response, next) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
 
@@ -112,10 +110,12 @@ const unknownEndpoint = (request, response) => {
 app.use(unknownEndpoint)
 
 const errorHandler = (error, request, response, next) => {
-  console.error(error.message)
+  console.error("handler:"+error.message)
 
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
+  }else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
   }else{
     return response.status(400).send({ error: 'unknown error' })
   }

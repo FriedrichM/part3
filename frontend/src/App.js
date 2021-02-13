@@ -43,6 +43,8 @@ const App = () => {
         .then(response => {
           setPersons(persons.concat(response))
           showmessage(`${response.name} added`,false)
+        }).catch(error => {
+          showmessage( error.response.data.error, true)
         })
       }else{
         const oldentry= existing[0]
@@ -55,8 +57,12 @@ const App = () => {
             setPersons(persons.map(person => person.id !== oldentry.id ? person : response))
             showmessage(`${response.name} updated`,false)
           }).catch(error => {
-          showmessage( `${oldentry.name} was already removed from server`,true)
-          setPersons(persons.filter(person=> person.id!==oldentry.id))
+            if(error.response.data.erro==="malformatted id"){
+              showmessage( `${oldentry.name} was already removed from server`,true)
+              setPersons(persons.filter(person=> person.id!==oldentry.id))
+            }else{
+              showmessage( error.response.data.error, true)
+            }
         })
         }
       }
